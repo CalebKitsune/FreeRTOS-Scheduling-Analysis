@@ -10,7 +10,7 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#define FOR_LOOP_WAIT 2 << 22
+#define FOR_LOOP_WAIT 1 << 21
 
 // help struct
 typedef struct
@@ -43,7 +43,7 @@ void task_xxxMS(void *pvParameters);
 void app_main(void)
 {
     BaseType_t result;
-    int PRIORITY[] = {3, 2, 1}; // higher time = higher priority
+    int PRIORITY[] = {1, 2, 3}; // higher key = higher priority
     // INIT GPIO
     set_config_output(LED_100);
     set_config_output(LED_500);
@@ -99,27 +99,32 @@ void set_config_output(gpio_num_t pin)
 
 void task_xxxMS(void *pvParameters)
 {
+    TickType_t xLastWake = xTaskGetTickCount();
     const task_args_t *args = (const task_args_t *)pvParameters;
 
     uint32_t ms = args->ms;
     gpio_num_t pin = args->pin;
 
-    bool pin_state = false;
+    // bool pin_state = false;
     for (;;)
     {
+        gpio_set_level(pin, 1);
         for (int i = 0; i < FOR_LOOP_WAIT; i++)
         {
         }
-        // no atomic toggle
-        // read, then BSR/BSRR
+        gpio_set_level(pin, 0);
 
-        pin_state = !pin_state;
-        gpio_set_level(pin, pin_state);
+        // TOGGLE METHOD
+        // (no atomic toggle: read, then BSR/BSRR)
 
+        //  pin_state = !pin_state;
+        //  gpio_set_level(pin, pin_state);
+
+        // DEBUGGING
         // ESP_LOGI("TASK", "GPIO %d -> %d, delay = %lu ms",
         //          pin, pin_state, ms);
 
         // toggle pin state
-        vTaskDelay(pdMS_TO_TICKS(ms)); // wait ms
+        vTaskDelayUntil(&xLastWake, pdMS_TO_TICKS(ms)); // wait ms
     }
 }
